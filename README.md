@@ -1,1 +1,0 @@
-# Participacion6Analisisdealgoritmos
