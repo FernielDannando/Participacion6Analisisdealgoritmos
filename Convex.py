@@ -8,6 +8,12 @@ from sklearn.cluster import DBSCAN
 
 class App:
     def __init__(self, root):
+        """
+        Inicializa la aplicación GUI con botones y área de texto.
+
+        Args:
+            root (tk.Tk): La ventana principal de la aplicación.
+        """
         self.root = root
         self.root.title("Análisis de Datos UMAP")
         
@@ -26,6 +32,10 @@ class App:
         self.df = None
     
     def load_file(self):
+        """
+        Carga un archivo .h5ad, extrae las coordenadas UMAP y los identificadores de clústeres,
+        y actualiza el DataFrame y el área de texto con la información.
+        """
         file_path = filedialog.askopenfilename(filetypes=[("Archivos h5ad", "*.h5ad")])
         if not file_path:
             return
@@ -76,6 +86,10 @@ class App:
             messagebox.showerror("Error", f"No se pudo cargar el archivo: {e}")
     
     def plot_data(self):
+        """
+        Muestra un gráfico UMAP con clústeres usando DBSCAN y dibuja las envolturas convexas 
+        para cada grupo de células.
+        """
         if self.df is None or self.df.empty:
             messagebox.showerror("Error", "No se ha cargado ningún archivo o los datos están vacíos.")
             return
@@ -100,6 +114,12 @@ class App:
         plt.show()
 
     def plot_convex_hulls(self, ax):
+        """
+        Dibuja el Convex Hull para cada clúster en el gráfico.
+
+        Args:
+            ax (matplotlib.axes.Axes): El objeto de ejes en el que se dibujará el Convex Hull.
+        """
         if not self.df.empty:
             # Agrupar datos por el clúster
             grouped = self.df.groupby('DBSCAN_Cluster')
