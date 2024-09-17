@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 import scanpy as sc
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.spatial import ConvexHull
 
 class App:
     def __init__(self, root):
@@ -78,16 +79,35 @@ class App:
             messagebox.showerror("Error", "No se ha cargado ningún archivo o los datos están vacíos.")
             return
         
-        # Visualización básica de las coordenadas UMAP
-        plt.figure(figsize=(8, 6))
-        plt.scatter(self.df['UMAP1'], self.df['UMAP2'], c=self.df['Cluster'], cmap='tab10', alpha=0.6)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        scatter = ax.scatter(self.df['UMAP1'], self.df['UMAP2'], c=self.df['Cluster'], cmap='tab10', alpha=0.6)
         plt.xlabel('UMAP1')
         plt.ylabel('UMAP2')
         plt.title('Visualización de UMAP con Clústeres')
-        plt.colorbar(label='Cluster ID')
+        plt.colorbar(scatter, label='Cluster ID')
+
+        # Añadir envoltura convexa al gráfico
+        self.plot_convex_hull(ax)
+
+        # Mostrar el gráfico en una ventana independiente
         plt.show()
 
-# Crear la ventana principal de la aplicación
-root = tk.Tk()
-app = App(root)
-root.mainloop()
+    def plot_convex_hull(self, ax):
+        if not self.df.empty:
+            points = self.df[['UMAP1', 'UMAP2']].values
+            hull = ConvexHull(points)
+
+            # Dibujar los bordes del convex hull
+            for simplex in hull.simplices:
+                ax.plot(points[simplex, 0], points[simplex, 1], 'k-')
+
+            # Rellenar el área del convex hull
+            ax.fill(points[hull.vertices, 0], points[hull.vertices, 1], 'b', alpha=0.2, label='Envoltura Convexa')
+
+            ax.legend()
+            ax.grid(True)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
