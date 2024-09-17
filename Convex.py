@@ -4,6 +4,7 @@ import scanpy as sc
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
+from sklearn.cluster import DBSCAN
 
 class App:
     def __init__(self, root):
@@ -79,30 +80,42 @@ class App:
             messagebox.showerror("Error", "No se ha cargado ningún archivo o los datos están vacíos.")
             return
         
+        # Realizar el clustering DBSCAN
+        eps = 1.1  # Distancia máxima entre puntos para ser considerados en el mismo clúster
+        min_samples = 5  # Número mínimo de puntos para formar un clúster
+        clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(self.df[['UMAP1', 'UMAP2']])
+        self.df['DBSCAN_Cluster'] = clustering.labels_
+        
         fig, ax = plt.subplots(figsize=(8, 6))
-        scatter = ax.scatter(self.df['UMAP1'], self.df['UMAP2'], c=self.df['Cluster'], cmap='tab10', alpha=0.6)
+        scatter = ax.scatter(self.df['UMAP1'], self.df['UMAP2'], c=self.df['DBSCAN_Cluster'], cmap='tab10', alpha=0.6)
         plt.xlabel('UMAP1')
         plt.ylabel('UMAP2')
-        plt.title('Visualización de UMAP con Clústeres')
+        plt.title('Visualización de UMAP con Clústeres DBSCAN')
         plt.colorbar(scatter, label='Cluster ID')
 
-        # Añadir envoltura convexa al gráfico
-        self.plot_convex_hull(ax)
+        # Añadir envoltura convexa por grupo de clústeres
+        self.plot_convex_hulls(ax)
 
         # Mostrar el gráfico en una ventana independiente
         plt.show()
 
-    def plot_convex_hull(self, ax):
+    def plot_convex_hulls(self, ax):
         if not self.df.empty:
-            points = self.df[['UMAP1', 'UMAP2']].values
-            hull = ConvexHull(points)
+            # Agrupar datos por el clúster
+            grouped = self.df.groupby('DBSCAN_Cluster')
+            
+            for cluster_id, group in grouped:
+                points = group[['UMAP1', 'UMAP2']].values
+                
+                if len(points) >= 3:  # Se requiere al menos 3 puntos para formar un Convex Hull
+                    hull = ConvexHull(points)
+                    
+                    # Dibujar los bordes del convex hull
+                    for simplex in hull.simplices:
+                        ax.plot(points[simplex, 0], points[simplex, 1], 'k-', alpha=0.7)
 
-            # Dibujar los bordes del convex hull
-            for simplex in hull.simplices:
-                ax.plot(points[simplex, 0], points[simplex, 1], 'k-')
-
-            # Rellenar el área del convex hull
-            ax.fill(points[hull.vertices, 0], points[hull.vertices, 1], 'b', alpha=0.2, label='Envoltura Convexa')
+                    # Rellenar el área del convex hull
+                    ax.fill(points[hull.vertices, 0], points[hull.vertices, 1], alpha=0.2, label=f'Cluster {cluster_id}')
 
             ax.legend()
             ax.grid(True)
